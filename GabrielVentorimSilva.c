@@ -10,7 +10,7 @@
 #define t 3 // fixado pelo exercício
 
 typedef int TipoChave;
- 
+
 typedef struct s
 {
     TipoChave chave[2 * t - 1]; // num de epaços no vetor
@@ -23,9 +23,7 @@ typedef struct s
 typedef struct
 {
     NO *raiz;
-} ArvBM; // B-Plus Tree
-
-// min de num é t-1 em um nó não folha e deve conter pelo menos t filhos
+} ArvBM;
 
 /**************************************** METODOS *********************************************/
 
@@ -34,8 +32,7 @@ void iniciaArv(ArvBM *T);
 void splitFilho(NO *x, int i, NO *y);
 void inserirRaizNaoCheio(NO *x, int ch);
 void inserir(ArvBM *T, int ch);
-void remover(ArvBM *T, int ch);
-void printArv(NO *x);
+void printArv(NO *x, FILE *arq_sd);
 void mergeFilhos(ArvBM *T, NO *x, int i);
 void removeSubArv(ArvBM *T, NO *x, int ch);
 void removeArvore(ArvBM *T, int ch);
@@ -43,11 +40,13 @@ void removerFolha(NO *x, int ch);
 void pegaDaEsq(ArvBM *T, NO *x, int n);
 void pegaDaDir(ArvBM *T, NO *x, int n);
 
-void printArv(NO *x)
+void printArv(NO *x, FILE *arq_sd)
 {
     if (x->numChaves == 0) // arv vazia
     {
-        printf("vazia\n");
+        // printf("Vazia");
+        fprintf(arq_sd, "Vazia");
+        return;
     }
 
     else
@@ -56,30 +55,43 @@ void printArv(NO *x)
 
         if (x->folha)
         {
-            printf("(");
+            // printf("(");
+            fprintf(arq_sd, "(");
             while (i < x->numChaves)
             {
-                printf("%d", x->chave[i]);
+                // printf("%d", x->chave[i]);
+                fprintf(arq_sd, "%d", x->chave[i]);
                 if (i < x->numChaves - 1)
-                    printf(" ");
+                {
+                    // printf(" ");
+                    fprintf(arq_sd, " ");
+                }
                 i++;
             }
-            printf(")");
+            // printf(")");
+            fprintf(arq_sd, ")");
             return;
         }
 
         else
         {
 
-            printf("(");
+            // printf("(");
+            fprintf(arq_sd, "(");
 
             while (i <= x->numChaves)
             {
-                printArv(x->filhos[i]);
+                printArv(x->filhos[i], arq_sd);
                 if (i < x->numChaves)
-                    printf(" %d ", x->chave[i]);
+                {
+                    // printf(" %d ", x->chave[i]);
+                    fprintf(arq_sd, " %d ", x->chave[i]);
+                }
                 else
-                    printf(")");
+                {
+                    // printf(")");
+                    fprintf(arq_sd, ")");
+                }
                 i++;
             }
         }
@@ -109,21 +121,6 @@ NO *criaNo()
 void iniciaArv(ArvBM *T)
 {
     T->raiz = criaNo();
-}
-
-// talvez colocar um auxiliar para saber em qual o no esta
-// x: noh raiz da arv
-int busca(NO *x, int ch)
-{
-    int i = 0;
-    while ((i < x->numChaves) && (ch > x->chave[i]))
-        i++;
-    if ((i < x->numChaves) && (ch == x->chave[i]))
-        return i;
-    if (x->folha)
-        return -1;
-    else
-        return busca(x->filhos[i], ch);
 }
 
 /* @param x noh pai interno nao cheio que receverah mais um valor
@@ -220,90 +217,19 @@ void inserir(ArvBM *T, int ch)
     }
 }
 
-// void remover(ArvBM *T, int ch)
-// {
-//     NO *r = T->raiz;
-//     if (T->raiz == NULL || (T->raiz->numChaves == 0)) // arvore vazia
-//         return;
-//     else
-//         removerRecursivo(T->raiz, ch);
-//     if (r->numChaves == 0) // se a raiz ficou vazia
-//     {
-//         if (r->folha) // se a raiz for folha
-//             T->raiz = NULL;
-//         else                        // se nao for folha
-//             T->raiz = r->filhos[0]; // nova raiz
-//         free(r);                    // liberando a raiz antiga
-//     }
-// }
-
-// a remocao deve ver os filhos entre ch: trocar com um ou outro (se tem tam suf para perser um) ou junta-los
-// nao estou vendo os filhos de y e z
-/* @param x noh interno que contem ch
- * @param i posicao em x onde a chave estah
- * @param y noh filho de x valor que sera trocado por ch
- * @param ch valor da chave que sera removida
- */
-void remove2ab(NO *x, int i, NO *y, TipoChave ch)
-{
-    int j;
-    x->chave[i] = y->chave[y->numChaves - 1]; // trocando ch por o maior valor de y
-    y->chave[y->numChaves - 1] = ch;          // trocando o valor de y com ch
-    // nao se faco agora: y->numChaves = y->numChaves - 1;          // diminuindo o num de chaves de y
-}
-
-// x deve ser interno
-// nohs y e z tem menos de t - 1 chaves
-// z = y->proxFolha
-
-/* @param x noh interno que contem ch
- * @param i posicao em x onde a chave estah;
- * @param y noh filho de x valor; x->filhos[i] = y
- * @param z noh filho de x valor; x->filhos[i + 1] = y
- * @param ch valor da chave que sera removida
- */
-void remove2c(NO *x, int i, NO *y, NO *z, TipoChave ch)
-{
-    int j;
-    // arrumando x
-    for (j = i; j < x->numChaves; j++) // passando os filhos para o lado
-        x->filhos[j] = x->filhos[j + 1];
-
-    for (j = i; j < x->numChaves - 1; j++)
-        x->chave[j] = x->chave[j + 1]; // passando os valores de x para o lado
-    x->numChaves = x->numChaves - 1;   // diminuindo o num de chaves de x
-
-    // unindo y e z
-    y->chave[y->numChaves] = ch; // colocando ch no final de y
-    for (j = 0; j < t - 1; j++)  // passando os valores de z para y
-        y->chave[t + j] = z->chave[j];
-
-    if (!(y->folha)) // se nao for folha
-    {
-        for (j = 0; j < t; j++) // passando os filhos de z para y
-            y->filhos[t + j] = z->filhos[j];
-    }
-}
-
 void mergeFilhos(ArvBM *T, NO *x, int n)
 {
-    // printf("merge\n");
     NO *esq = x->filhos[n];
     NO *dir = x->filhos[n + 1];
     NO *dir2 = x->filhos[n + 2];
-    // printf(">>>>>>>n: %d\n", n);
     int i;
     if (esq->folha)
     {
-
         for (i = 0; i < dir->numChaves; i++)
         {
             esq->chave[esq->numChaves] = dir->chave[i];
             esq->numChaves++;
         }
-        //     inserir(T, dir->chave[i]); // inserir(esq, dir->chave[i]);
-        //     // x->chave[n] = dir->chave[i];
-        //     printArv(T->raiz);
     }
     else
     {
@@ -326,17 +252,12 @@ void mergeFilhos(ArvBM *T, NO *x, int n)
     }
     x->filhos[n + 1] = dir2;
     x->numChaves--;
-    // printf(">>>> aquiii %d\n", esq->numChaves);
 
     free(dir);
-    // removeArvore(T, x->chave[n]);
-    // printArv(T->raiz);
 }
 
 void removerFolha(NO *x, int ch)
 {
-    // printf("remFolha\n");
-
     int j, i = 0;
     while (i < x->numChaves && ch > x->chave[i])
     {
@@ -344,17 +265,13 @@ void removerFolha(NO *x, int ch)
     }
     for (j = i; j < x->numChaves - 1; j++)
     {
-        // //printf("%d\n", x->chave[j]);
         x->chave[j] = x->chave[j + 1];
     }
     x->numChaves = x->numChaves - 1;
-    // //printf("%d\n", x->chave[j]);
 }
 
 void pegaDaEsq(ArvBM *T, NO *x, int n)
 {
-    // printf("esq\n");
-
     int i;
     NO *esq = x->filhos[n];
     NO *dir = x->filhos[n + 1];
@@ -362,7 +279,6 @@ void pegaDaEsq(ArvBM *T, NO *x, int n)
     {
         x->chave[n] = esq->chave[esq->numChaves - 1];
         removerFolha(esq, x->chave[n]);
-        // printArv(T->raiz);
         inserir(T, x->chave[n]); // inserir(dir, x->chave[n]);
     }
     else
@@ -383,8 +299,6 @@ void pegaDaEsq(ArvBM *T, NO *x, int n)
 
 void pegaDaDir(ArvBM *T, NO *x, int n)
 {
-    // printf("dir\n");
-
     int i;
     NO *esq = x->filhos[n];
     NO *dir = x->filhos[n + 1];
@@ -412,8 +326,6 @@ void pegaDaDir(ArvBM *T, NO *x, int n)
 
 void removeSubArv(ArvBM *T, NO *x, int ch)
 {
-    // printf("subArv\n");
-
     int i = 0;
     while (i < x->numChaves && ch >= x->chave[i])
         i++;
@@ -422,7 +334,6 @@ void removeSubArv(ArvBM *T, NO *x, int ch)
     {
         if (x->folha)
         {
-            // printf("---> %d\n", ch);
             removerFolha(x, ch);
         }
 
@@ -437,20 +348,17 @@ void removeSubArv(ArvBM *T, NO *x, int ch)
             }
             x->chave[i - 1] = ant->chave[1]; // trocando o valor
         }
-        // printf("-> %d\n", ch);
 
         if (!(x->folha) && (x->filhos[i]->numChaves == t - 1))
         {
             if ((i > 0) && (x->filhos[i - 1]->numChaves >= t))
             {
-                // printf("---> %d\n", ch);
                 pegaDaEsq(T, x, i - 1);
             }
             else if ((i < x->numChaves) && (x->filhos[i + 1]->numChaves >= t))
                 pegaDaDir(T, x, i);
             else
             {
-                // printf("-> -> %d\n", ch);
                 mergeFilhos(T, x, i - 1);
                 i--;
             }
@@ -482,8 +390,6 @@ void removeSubArv(ArvBM *T, NO *x, int ch)
             {
                 if (i == x->numChaves)
                 {
-                    // printf("---> %d\n", ch);
-
                     mergeFilhos(T, x, i - 1);
                     i--;
                     if (!(x->folha))
@@ -493,12 +399,9 @@ void removeSubArv(ArvBM *T, NO *x, int ch)
                 }
                 else
                 {
-                    // printf("-> ----> %d\n", ch);
                     mergeFilhos(T, x, i - 1);
                     if (!(x->folha))
                     {
-                        // printf(">>>> aquii");
-                        // printArv(T->raiz);
                         removeSubArv(T, x->filhos[i - 1], ch);
                     }
                 }
@@ -516,7 +419,8 @@ void removeSubArv(ArvBM *T, NO *x, int ch)
 
 void removeArvore(ArvBM *T, int ch)
 {
-    // printf("remove\n");
+    if (T->raiz->numChaves == 0) // remocao em arvore vazia
+        return;
 
     removeSubArv(T, T->raiz, ch);
     if (T->raiz->numChaves == 0)
@@ -531,7 +435,7 @@ void removeArvore(ArvBM *T, int ch)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
+    if (argc != 3)
     {
         fprintf(stderr, "Erro: quantidade de argumentos\n");
     }
@@ -542,7 +446,12 @@ int main(int argc, char **argv)
         fprintf(stderr, "Erro: ponteiro do arq_ent\n");
     }
 
-    // criar ArvBM T e deixa seu pont para root vazia
+    FILE *arq_sd = fopen(argv[2], "w");
+    if (!arq_sd)
+    {
+        fprintf(stderr, "Erro: ponteiro do arq_sd\n");
+    }
+
     ArvBM T;
     iniciaArv(&T);
 
@@ -555,45 +464,22 @@ int main(int argc, char **argv)
 
         if (acao == 'i')
         {
-            // incluir
-            printf("%c %d\n", acao, valor);
             inserir(&T, valor);
         }
 
         if (acao == 'r')
         {
-            // remover
-            printf("%c %d\n", acao, valor);
-            // se nao tiver nos ele nao faz nada
             removeArvore(&T, valor);
         }
 
         if (acao == 'p')
         {
-            // printar
-            printf("%c\n", acao);
-            printArv(T.raiz);
+            printArv(T.raiz, arq_sd);
+            fprintf(arq_sd, "\n");
         }
     }
+    fclose(arq_ent);
+    fclose(arq_sd);
+
+    return 0;
 }
-
-// switch (acao)
-// {
-// case 'i':
-//     // incluir
-//     printf("%c %d\n", acao, valor);
-//     break;
-
-// case 'r':
-//     // remover
-//     printf("%c %d\n", acao, valor);
-//     break;
-
-// case 'p':
-//     // printar
-//     printf("%c\n", acao);
-//     break;
-
-// default:
-//     printf("Operacao invalida");
-// }
